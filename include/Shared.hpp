@@ -6,109 +6,105 @@
 using namespace std;
 
 template <typename T>
-class CommonPointer
+class SharedPtr 
 {
 private:
-	T* ptr;
-	atomic_uint* count;
+	T* pointer;
+	atomic_uint *counter;
 public:
-	CommonPointer()
+	SharedPtr() 
 	{
-		ptr = nullptr;
-		count = nullptr;
+		pointer = nullptr;
+		counter = nullptr;
 	};
-	explicit CommonPointer(T* ptr)
+	explicit SharedPtr(T* ptr)
 	{
-		ptr = ptr;
-		count = new atomic_uint(1);
+		pointer = ptr;
+		counter = new atomic_uint(1);
 	};
-	CommonPointer(const CommonPointer& arg)
+	SharedPtr(const SharedPtr& r)
 	{
-		count = nullptr;
-		*this = arg;
+		counter = nullptr;
+		*this = r;
 	};
-	CommonPointer(CommonPointer&& arg)
+	SharedPtr(SharedPtr&& r) noexcept 
 	{
-		count = nullptr;
-		*this = std::move(arg);
+		counter = nullptr;
+		*this = std::move(r);
 	};
-	~CommonPointer()
+	~SharedPtr()
 	{
-		if (count == nullptr)
+		if (counter == nullptr)
 			return;
-		else
+		(counter)--;
+		if (counter == 0) 
 		{
-			count--;
-			if (!count)
-			{
-				delete ptr;
-				delete count;
-			}
+			delete pointer;
+			delete counter;
 		}
-
 	};
-	auto operator=(const CommonPointer& arg)->CommonPointer&
+	auto operator=(const SharedPtr& r)->SharedPtr&
 	{
-		if (this == &arg)
+		if (this == &r)
 			return *this;
 
-		(*this).~CommonPointer();
+		this->~SharedPtr();
 
-		ptr = arg.ptr;
-		count = arg.count;
-		(*count)++;
+		pointer = r.pointer;
+		counter = r.counter;
+		(*counter)++;
 
 		return *this;
 	};
-	auto operator=(CommonPointer&& arg)->CommonPointer&
-	{
-		if (this == &arg)
+	auto operator=(SharedPtr&& r)->SharedPtr& 
+	{ 
+		if (this == &r)
 			return *this;
 
-		this->~CommonPointer();
+		this->~SharedPtr();
 
-		ptr = arg.ptr;
-		count = arg.count;
-		arg.count = nullptr;
-		arg.ptr = nullptr;
+		pointer = r.pointer;
+		counter = r.counter;
+		r.counter = nullptr;
+		r.pointer = nullptr;
 
 		return *this;
 	};
 	operator bool() const
 	{
-		return ptr != nullptr;
+		return pointer != nullptr;
 	};
 	auto operator*() const->T&
 	{
-		return *ptr;
+		return *pointer;
 	};
 	auto operator->() const->T*
 	{
-		return ptr;
+		return pointer;
 	};
 	auto get()->T*
 	{
-		return ptr;
+		return pointer;
 	};
-	void reset()
+	void reset() 
 	{
-		*this = CommonPointer();
+		*this = SharedPtr();
 	};
-	void resetTo(T* ptr)
+	void reset(T* ptr) 
 	{
-		*this = CommonPointer(ptr);
-	};
-
-	void swap(CommonPointer& swaper)
-	{
-		std::swap(ptr, swaper.ptr);
-		std::swap(count, swaper.count);
+		*this = SharedPtr(ptr);
 	};
 
-	auto getCount() const->size_t
+	void swap(SharedPtr& r) 
 	{
-		if (count != nullptr)
-			return *count;
+		std::swap(pointer, r.pointer);
+		std::swap(counter, r.counter);
+	};
+
+	auto use_count() const->size_t
+	{
+		if (counter != nullptr)
+			return *counter;
 		else
 			return 0;
 	};
